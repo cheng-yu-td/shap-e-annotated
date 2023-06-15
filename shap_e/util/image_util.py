@@ -92,27 +92,60 @@ def remove_alpha(img: Image.Image, mode: str = "random") -> Image.Image:
     """
     No op if the image doesn't have an alpha channel.
 
-    :param: mode: Defaults to "random" but has an option to use a "black" or
-        "white" background
+    :param mode: The mode for removing the alpha channel. Defaults to "random" but has options to use "black" or "white" background.
 
-    :return: image with alpha removed
+    :return: Image with alpha channel removed.
     """
     img_arr = np.asarray(img)
+
     if img_arr.shape[2] == 4:
-        # Add bg to get rid of alpha channel
+        # If the image has an alpha channel (shape[2] == 4), proceed to remove the alpha channel.
+
         if mode == "random":
+            # If the mode is "random", choose a random background (black, gray, checker, or noise).
             height, width = img_arr.shape[:2]
             bg = Image.fromarray(
                 random.choice([_black_bg, _gray_bg, _checker_bg, _noise_bg])(height, width)
             )
+            # Paste the original image onto the background using the alpha channel as a mask.
+            """
+            
+            The line bg.paste(img, mask=img) performs a paste operation on the bg image, using img as the source image and img itself as the mask. Here's a step-by-step explanation of what happens:
+
+bg: The bg image is the background image onto which we want to paste the source image img.
+img: The img image is the source image that we want to paste onto the background.
+mask=img: The mask parameter specifies a mask image that determines which parts of the source image should be
+ pasted onto the background. In this case, the mask is set to img itself, meaning that wherever the alpha channel of img is non-zero, the corresponding pixel in img will be pasted onto the background bg.
+bg.paste(img, mask=img): The paste() method of the bg image is called with the source image img and the mask img. 
+This operation copies the pixels from img onto the corresponding positions in bg based on the mask. The pixels from img are only pasted where the mask (alpha channel) is non-zero, effectively replacing the alpha channel with the content of img.
+
+In summary, the bg.paste(img, mask=img) operation replaces the alpha channel of the background image bg with the 
+corresponding pixels from the source image img wherever the alpha channel is non-zero. 
+It effectively removes the alpha channel by pasting the opaque parts of img onto the background while preserving transparency where the alpha channel is zero.
+            
+            
+            """
+
+
             bg.paste(img, mask=img)
             img = bg
+
         elif mode == "black" or mode == "white":
+            # If the mode is "black" or "white", remove the alpha channel by blending the image with a background color.
+
             img_arr = img_arr.astype(float)
             rgb, alpha = img_arr[:, :, :3], img_arr[:, :, -1:] / 255
+
+            # Set the background color based on the mode ("black" or "white").
             background = np.zeros((1, 1, 3)) if mode == "black" else np.full((1, 1, 3), 255)
+
+            # Blend the RGB values of the image with the background color using the alpha channel.
             rgb = rgb * alpha + background * (1 - alpha)
+
+            # Create a new image from the blended RGB values and convert it to the appropriate data type.
             img = Image.fromarray(np.round(rgb).astype(np.uint8))
+
+    # Return the modified image (with alpha channel removed or unchanged).
     return img
 
 
